@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9000" doc:name="HTTP Listener Configuration"/>
+    <db:oracle-config name="Oracle_Configuration" host="localhost" port="1521" instance="xe" user="system" password="admin" doc:name="Oracle Configuration"/>
+    <flow name="rest-apiFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getmethod" allowedMethods="GET" doc:name="HTTP"/>
+        <db:select config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[select * from employe444]]></db:parameterized-query>
+        </db:select>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <file:outbound-endpoint path="src/test/resources/out" responseTimeout="10000" doc:name="File"/>
+        <logger message="getting Employee details" level="INFO" doc:name="Logger"/>
+        <set-property propertyName="content-Type" value="apppication/json" doc:name="Property"/>
+    </flow>
+    <flow name="rest-apiFlow1">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/postmethod" allowedMethods="POST" doc:name="HTTP"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <db:insert config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[insert into employe444 values(#[payload.EMPI_ID],#[payload.EMAIL],#[payload.name])]]></db:parameterized-query>
+        </db:insert>
+        <set-payload value="#['STATUS: Successfully added']" doc:name="Set Payload"/>
+    </flow>
+    <flow name="Copy_of_rest-apiFlow-URIparameter">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getmethod/{ID}" allowedMethods="GET" doc:name="Copy_of_HTTP"/>
+        <db:select config-ref="Oracle_Configuration" doc:name="Copy_of_Database">
+            <db:parameterized-query><![CDATA[select * from employe444 where EMPI_ID = #[message.inboundProperties.'http.uri.params'.ID]]]></db:parameterized-query>
+        </db:select>
+        <json:object-to-json-transformer doc:name="Copy_of_Object to JSON"/>
+        <logger message="getting particaule Employee detail" level="INFO" doc:name="Copy_of_Logger"/>
+        <set-property propertyName="content-Type" value="apppication/json" doc:name="Copy_of_Property"/>
+    </flow>
+    <flow name="rest-apiFlow2">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/updatemethod" allowedMethods="PUT" doc:name="HTTP"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <db:update config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[update 	employe444 set NAME =#[payload.NAME] where EMPI_ID =#[payload.EMPI_ID]]]></db:parameterized-query>
+        </db:update>
+        <db:select config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[select * from employe444]]></db:parameterized-query>
+        </db:select>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+    </flow>
+    <flow name="rest-apiFlow3">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/deletemethod" allowedMethods="DELETE" doc:name="HTTP"/>
+        <db:delete config-ref="Oracle_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[DELETE FROM EMPLOYE444 WHERE EMPI_ID =#[message.inboundProperties.'http.uri.params'.ID]]]></db:parameterized-query>
+        </db:delete>
+        <set-payload value="#['status:Deleted successfully']" doc:name="Set Payload"/>
+        <logger message="deleted successfully" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
